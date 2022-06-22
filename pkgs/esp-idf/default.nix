@@ -1,11 +1,6 @@
 # When updating to a newer version, check if the version of `esp32-toolchain-bin.nix` also needs to be updated.
-{ rev ? "v4.3.1"
-, sha256 ? "sha256-+SMdnIBSCdHy+MDbInl/aXJuXOf9seJbQ3u4mN+qFP4="
-, stdenv
-, lib
-, fetchFromGitHub
-, mach-nix
-}:
+{ rev ? "v4.3.1", sha256 ? "sha256-+SMdnIBSCdHy+MDbInl/aXJuXOf9seJbQ3u4mN+qFP4="
+, stdenv, lib, fetchFromGitHub, mach-nix }:
 
 let
   src = fetchFromGitHub {
@@ -16,23 +11,22 @@ let
     fetchSubmodules = true;
   };
 
-  pythonEnv =
-    let
-      # Remove things from requirements.txt that aren't necessary and mach-nix can't parse:
-      # - Comment out Windows-specific "file://" line.
-      # - Comment out ARMv7-specific "--only-binary" line.
-      requirementsOriginalText = builtins.readFile "${src}/requirements.txt";
-      requirementsText = builtins.replaceStrings
-        [ "file://" "--only-binary" ]
-        [ "#file://" "#--only-binary" ]
-        requirementsOriginalText;
-    in
-    mach-nix.mkPython
-      {
-        requirements = requirementsText;
-      };
-in
-stdenv.mkDerivation rec {
+  pythonEnv = let
+    # Remove things from requirements.txt that aren't necessary and mach-nix can't parse:
+    # - Comment out Windows-specific "file://" line.
+    # - Comment out ARMv7-specific "--only-binary" line.
+    requirementsOriginalText = builtins.readFile "${src}/requirements.txt";
+    requirementsText = builtins.replaceStrings [ "file://" "--only-binary" ] [
+      "#file://"
+      "#--only-binary"
+    ] requirementsOriginalText;
+  in mach-nix.mkPython {
+    requirements = ''
+      ${requirementsText}
+      setuptools
+    '';
+  };
+in stdenv.mkDerivation rec {
   pname = "esp-idf";
   version = rev;
 
